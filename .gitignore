@@ -1,6 +1,7 @@
 .vscode
 __pycache__
 
+*.srt
 *.mkv
 *.mp4
 *.jpg
