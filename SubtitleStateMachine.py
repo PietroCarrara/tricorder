@@ -2,10 +2,11 @@ import srt
 
 class SubtitleStateMachine:
 
-    def __init__(self):
+    def __init__(self, file):
         self.subs = []
         self.string = ''
         self.start = None
+        self.file = file
         self._index = 0
 
     def say(self, string, time):
@@ -27,11 +28,11 @@ class SubtitleStateMachine:
             return
 
         self._index += 1
-        self.subs.append(srt.Subtitle(self._index, self.start, time, self.string))
+        sub = srt.Subtitle(self._index, self.start, time, self.string)
 
-        print('{} --> {}'.format(self.start, time))
-        print('"{}"'.format(self.string))
-        print()
+        self.subs.append(sub)
+        self.file.write(sub.to_srt())
+        self.file.flush()
 
         self.string = ''
         self.start = None
