@@ -1,6 +1,6 @@
+from PIL import Image
 import subprocess
 import json
-from PIL import Image
 
 
 class VideoFrames:
@@ -37,7 +37,7 @@ class VideoFrames:
     def __enter__(self):
         self._subprocess = subprocess.Popen([self.ffmpeg, '-i', '-', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
                                             stdin=self.stream, stderr=subprocess.DEVNULL, stdout=subprocess.PIPE)
-        return iter(self)
+        return self
 
     def __exit__(self, type, value, traceback):
         self._subprocess.kill()
