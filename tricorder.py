@@ -4,28 +4,12 @@ from VideoFrames import VideoFrames
 from FrameDeltaIterator import FrameDeltaIterator
 from SubtitleStateMachine import SubtitleStateMachine
 from hypercube import tesse_fix
-from colour import Color
-from PySide2.QtWidgets import *
 import pytesseract
-import click
 
 
-@click.command()
-@click.argument('infile', type=click.File('r'))
-@click.option('-o', type=click.File('w'), default='-', help="The output srt file")
-@click.option('--color', default="#fff", help="The color of the subtitles in a html5-compliant format")
-@click.option('--tleft', type=(float, float), default=(0, .8), help="Top left position of the rectangle where subtitles are located, in [0, 1] range")
-@click.option('--bright', type=(float, float), default=(1, 1), help="Bottom right position of the rectangle where subtitles are located, in [0, 1] range")
-@click.option('--tolerance', default=25, help="Value in range [0, 255] on how tolerant should the code be on the color of the subtitle")
-@click.option('--sensitivity', default=25, help="How many pixels should change in order for us to try reading new subtitles. Should propably not be changed")
-def main(infile, o, color, tleft, bright, tolerance, sensitivity):
-    scan(infile, o, color, tleft, bright, tolerance, sensitivity)
+def scan(infile, out, color, tleft, bright, tolerance, sensitivity, notifier):
 
-
-def scan(infile, o, color, tleft, bright, tolerance, sensitivity):
-    color = tuple(map(lambda v: int(v*255), Color(color).rgb))
-
-    with infile as video, VideoFrames(video) as frames, o as out:
+    with infile as video, VideoFrames(video) as frames, out:
         # Crop the images and scan them for changes
         changes = FrameDeltaIterator(map(lambda frame: crop_img(
             frame, tleft, bright), frames), color, sensitivity)
@@ -93,7 +77,3 @@ def near(color1, color2, deviation):
         abs(color1[2] - color2[2]),
     )
     return max(color) <= deviation
-
-
-if __name__ == '__main__':
-    main()
