@@ -1,4 +1,5 @@
 from PIL import Image
+from datetime import timedelta
 import subprocess
 import json
 
@@ -29,8 +30,12 @@ class VideoFrames:
         # Acqurie video information
         info = next(
             stream for stream in info['streams'] if stream['codec_type'] == 'video')
+
         self.width = int(info['width'])
         self.height = int(info['height'])
+
+        self.total_frames = int(info['nb_frames'])
+        self.duration = timedelta(seconds=float(info['duration']))
 
         self._bytes_per_frame = self.width * self.height * 3  # 3 Bytes for each pixel
 

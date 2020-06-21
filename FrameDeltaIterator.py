@@ -7,7 +7,7 @@ class FrameDeltaIterator:
         :param frames: Sequence of frames to watch for changes
         :type frames: Iterable of PIL.Image
         :param color: Color to watch for changes
-        :type color: (byte, byte, byte)
+        :type color: (int, int, int)
         :param delta: Number of pixels that have to change in order to alert for a new frame
         :type delta: int
         """
@@ -17,12 +17,14 @@ class FrameDeltaIterator:
 
     def __iter__(self):
         prevCount = 0
+        frameCount = 0
 
         for currFrame in self.frames:
             count = countPixels(currFrame, self.color)
             if abs(prevCount - count) >= self.delta:
-                yield currFrame
+                yield (currFrame, frameCount)
 
+            frameCount += 1
             prevCount = count
 
 
