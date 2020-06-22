@@ -4,6 +4,7 @@ from VideoFrames import VideoFrames
 from FrameDeltaIterator import FrameDeltaIterator
 from SubtitleStateMachine import SubtitleStateMachine
 from hypercube import tesse_fix
+import math
 import pytesseract
 
 
@@ -18,7 +19,8 @@ def scan(infile, out, color, tleft, bright, tolerance, sensitivity, frameskip, n
 
         for change in changes:
             img = change[0]
-            imgIndex = change[1] * (frameskip+1) + frameskip # Account for skipped frames
+            # Account for skipped frames
+            imgIndex = change[1] * (frameskip+1) + frameskip
 
             # Filter only pixels that have subtitle colors
             filtered = filter_pixels(img, color, tolerance)
@@ -60,30 +62,44 @@ def filter_pixels(img, color, deviation):
         color[2] ^ 255,
     ))
 
+    # Allocate each line of the mask
+    mask = [None] * img.height
+
+    areaRadius = 40
+
+    spots = []
     x = 0
     y = 0
-    for y in range(img.size[1]):
-        for x in range(img.size[0]):
+
+    # Search for pixels that match the target color,
+    # and calculate the distance of each pixel to the target color
+    for y in range(img.height):
+        # Allocate each row of the mask
+        mask[y] = [0] * img.width
+        for x in range(img.width):
             p = img.getpixel((x, y))
-            if near(p, color, deviation):
-                res.putpixel((x, y), p)
+            mask[y][x] = distance(p, color)
+            if color == p:
+                spots.append((x, y))
+
+    # For each pixel that the color is not too different from the target,
+    # if it is within the radius of a 100% match with the target,
+    # put it on the resulting image
+    for y in range(img.height):
+        for x in range(img.width):
+            if mask[y][x] <= deviation:
+                for point in spots:
+                    _x = x - point[0]
+                    _y = y - point[1]
+                    d = math.sqrt(_y*_y + _x*_x) # Euclidean distance
+                    if d < areaRadius:
+                        res.putpixel((x, y), img.getpixel((x, y)))
+                        break
 
     return res
 
-
-def near(color1, color2, deviation):
-    color = (
-        abs(color1[0] - color2[0]),
-        abs(color1[0] - color2[1]),
-        abs(color1[0] - color2[2]),
-        abs(color1[1] - color2[0]),
-        abs(color1[1] - color2[1]),
-        abs(color1[1] - color2[2]),
-        abs(color1[2] - color2[0]),
-        abs(color1[2] - color2[1]),
-        abs(color1[2] - color2[2]),
-    )
-    return max(color) <= deviation
+def distance(color1, color2):
+    return int(abs(sum(color1) - sum(color2)) / 3)
 
 class skipper:
     def __init__(self, iter, skips):
