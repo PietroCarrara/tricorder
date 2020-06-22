@@ -7,30 +7,33 @@ from hypercube import tesse_fix
 import pytesseract
 
 
-def scan(infile, out, color, tleft, bright, tolerance, sensitivity, notifier):
+def scan(infile, out, color, tleft, bright, tolerance, sensitivity, frameskip, notifier):
 
     with infile as video, VideoFrames(video) as frames, out:
-        # Crop the images and scan them for changes
+        # Skip frames, crop the images and scan them for changes
         changes = FrameDeltaIterator(map(lambda frame: crop_img(
-            frame, tleft, bright), frames), color, sensitivity)
+            frame, tleft, bright), skipper(frames, frameskip)), color, sensitivity)
 
         subs = SubtitleStateMachine(out, notifier)
 
         for change in changes:
-            # For each change...
+            img = change[0]
+            imgIndex = change[1] * (frameskip+1) + frameskip # Account for skipped frames
 
             # Filter only pixels that have subtitle colors
-            img = filter_pixels(
-                change[0], color, tolerance)
+            filtered = filter_pixels(img, color, tolerance)
 
-            notifier.notify_frame(img, change[1]/frames.total_frames)
+            s = tesse_fix(pytesseract.image_to_string(filtered, lang='eng'))
+            time = frames.duration * (imgIndex / frames.total_frames)
 
-            s = tesse_fix(pytesseract.image_to_string(img, lang='eng'))
-            time = frames.duration * (change[1] / frames.total_frames)
+            notifier.notify_frame(filtered, s)
+            notifier.notify_progress(imgIndex, frames.total_frames)
+            notifier.notify_time(time)
 
             subs.say(s, time)
 
         notifier.notify_done()
+
 
 def crop_img(frame, top_left, bottom_right):
     """Crops a image
@@ -81,3 +84,17 @@ def near(color1, color2, deviation):
         abs(color1[2] - color2[2]),
     )
     return max(color) <= deviation
+
+class skipper:
+    def __init__(self, iter, skips):
+        self.iter = iter
+        self.skips = skips
+
+    def __iter__(self):
+        i = 0
+        for obj in self.iter:
+            if i >= self.skips:
+                i = 0
+                yield obj
+            else:
+                i += 1

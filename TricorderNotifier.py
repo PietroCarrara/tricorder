@@ -1,5 +1,11 @@
 class TricorderNotifier:
-    def notify_frame(self, frame, completion):
+    def notify_frame(self, frame, contents):
+        pass
+
+    def notify_progress(self, currFrame, totalFrames):
+        pass
+
+    def notify_time(self, time):
         pass
 
     def notify_subtitle(self, sub):
@@ -24,14 +30,18 @@ class GUINotifier(TricorderNotifier):
     def __init__(self, app):
         self.app = app
 
-        self.subs = []
+    def notify_frame(self, frame, contents):
+        self.app.notify_frame.emit(frame)
+        self.app.notify_display.emit(contents)
 
-    def notify_frame(self, frame, completion):
-        self.app.notify_frame.emit(frame, completion)
+    def notify_time(self, time):
+        pass
+
+    def notify_progress(self, currFrame, totalFrames):
+        self.app.notify_completion.emit(currFrame/totalFrames)
 
     def notify_subtitle(self, sub):
-        self.subs.append(sub)
-        self.app.notify_subtitles.emit(self.subs)
+        self.app.notify_subtitles.emit(sub)
 
     def notify_done(self):
         pass
