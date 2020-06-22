@@ -14,19 +14,23 @@ def scan(infile, out, color, tleft, bright, tolerance, sensitivity, notifier):
         changes = FrameDeltaIterator(map(lambda frame: crop_img(
             frame, tleft, bright), frames), color, sensitivity)
 
-        subs = SubtitleStateMachine(out)
+        subs = SubtitleStateMachine(out, notifier)
 
         for change in changes:
-            # For each change
+            # For each change...
+
+            # Filter only pixels that have subtitle colors
             img = filter_pixels(
                 change[0], color, tolerance)
+
+            notifier.notify_frame(img, change[1]/frames.total_frames)
 
             s = tesse_fix(pytesseract.image_to_string(img, lang='eng'))
             time = frames.duration * (change[1] / frames.total_frames)
 
-            img.save('{}.png'.format(time))
             subs.say(s, time)
 
+        notifier.notify_done()
 
 def crop_img(frame, top_left, bottom_right):
     """Crops a image
